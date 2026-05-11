@@ -1,0 +1,10 @@
+# OS files
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+
+# Data cache and results
+data/cache/
+data/results/
