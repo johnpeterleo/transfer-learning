@@ -18,14 +18,26 @@ cd transfer-learning
 ```
 
 ### Install Requirements
-
-TBA
+```bash
+pip install -r requirements.txt
+```
 
 ### How To Run 
 
-TBA
+1. Run extract.py
 
+Parses image filenames and builds a pandas DataFrame with metadata (breed, label, file path, image index).
+```bash
+cd src
+python extract.py
+```
 
+2. Run beginning.py 
+Currently downloads the dataset another time so not super efficient but this is a binary classification between cat and dog.
+```bash
+cd src
+python extract.py
+```
 ## Contact
 John Christensen - johnchristensen@outlook.com
 
