@@ -33,6 +33,7 @@ python extract.py
 ```
 
 2. Run beginning.py 
+        
 Binary transfer learning experiment (Cat vs Dog classification) using the built in dataset from torchvision.datasets.OxfordIIITPet provided by torch, and not extract.py (which can be used for training on imbalanced data)
 ```bash
 cd src
@@ -71,6 +72,7 @@ Best val acc: 0.9463
 ```
 
 3. Run multi_class.py 
+        
 Multi-class transfer learning experiment for all 37 pet breeds using the built in dataset from torchvision.datasets.OxfordIIITPet provided by torch, and not extract.py (which can be used for training on imbalanced data)
 ```bash
 cd src
