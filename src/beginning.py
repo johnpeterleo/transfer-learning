@@ -178,6 +178,7 @@ def visualize_model(model, num_images=6):
 # -----------------------
 model = models.resnet34(weights="IMAGENET1K_V1")
 model.fc = nn.Linear(model.fc.in_features, 2)
+
 #Freeze all pretrained layers
 for param in model.parameters():
     param.requires_grad = False
@@ -190,6 +191,7 @@ model = model.to(device)
 # -----------------------
 # Loss + Optimizer
 # -----------------------
+# model.fc = final fully connected classification layer (replaces original ResNet classifier)
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.Adam(model.fc.parameters(), lr=0.001)
 
