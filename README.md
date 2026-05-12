@@ -34,46 +34,46 @@ python extract.py
 
 2. Run beginning.py 
         
-Binary transfer learning experiment (Cat vs Dog classification) using the built in dataset from torchvision.datasets.OxfordIIITPet provided by torch, and not extract.py (which can be used for training on imbalanced data)
+Binary transfer learning experiment (Cat vs Dog classification) using the built in dataset from torchvision.datasets.OxfordIIITPet provided by torch, and not extract.py (which can be used for training on imbalanced data). This part uses Adam optimizer with 0.001 learning rate. The old final layer is replaced with "model.fc = nn.Linear(model.fc.in_features, 2)" which means that instead of ResNets 1000 or so outputs, we instead have two for Cat and Dog. Then the replaced final layer is fine-tuned with pet datasets training data.
 ```bash
 cd src
-python extract.py
+python beginning.py
 ```
       
 Produces these results during training:
 ```bash
 Epoch 0/4
 --------------------
-train loss: 0.3091 acc: 0.8772
-val loss: 0.2331 acc: 0.9090
+train loss: 0.2561 acc: 0.9049
+val loss: 0.0999 acc: 0.9747
 
 Epoch 1/4
 --------------------
-train loss: 0.1386 acc: 0.9478
-val loss: 0.1427 acc: 0.9463
+train loss: 0.0794 acc: 0.9804
+val loss: 0.0630 acc: 0.9847
 
 Epoch 2/4
 --------------------
-train loss: 0.0889 acc: 0.9677
-val loss: 0.1502 acc: 0.9444
+train loss: 0.0701 acc: 0.9791
+val loss: 0.0500 acc: 0.9877
 
 Epoch 3/4
 --------------------
-train loss: 0.0825 acc: 0.9701
-val loss: 0.1853 acc: 0.9324
+train loss: 0.0482 acc: 0.9867
+val loss: 0.0435 acc: 0.9880
 
 Epoch 4/4
 --------------------
-train loss: 0.0659 acc: 0.9755
-val loss: 0.2486 acc: 0.9095
+train loss: 0.0519 acc: 0.9823
+val loss: 0.0392 acc: 0.9872
 
-Training done in 15m 57s
-Best val acc: 0.9463
+Training done in 5m 50s
+Best val acc: 0.9880
 ```
 
 3. Run multi_class.py 
         
-Multi-class transfer learning experiment for all 37 pet breeds using the built in dataset from torchvision.datasets.OxfordIIITPet provided by torch, and not extract.py (which can be used for training on imbalanced data)
+Multi-class transfer learning experiment for all 37 pet breeds using the built in dataset from torchvision.datasets.OxfordIIITPet provided by torch, and not extract.py (which can be used for training on imbalanced data). This part uses Adam optimizer with 0.001 learning rate. The replaced final layer (37 output instead of resnets own 1000 or so outputs) is fine-tuned with pet datasets training data.
 ```bash
 cd src
 python multi_class.py
@@ -83,30 +83,31 @@ Produces these results during training:
 ```bash
 Epoch 0/4
 --------------------
-train loss: 1.8490 acc: 0.4516
-val loss: 2.0516 acc: 0.3949
+train loss: 1.8515 acc: 0.5870
+val loss: 0.8111 acc: 0.8362
 
 Epoch 1/4
 --------------------
-train loss: 1.0916 acc: 0.6527
-val loss: 1.8946 acc: 0.4623
+train loss: 0.6194 acc: 0.8728
+val loss: 0.5301 acc: 0.8681
 
 Epoch 2/4
 --------------------
-train loss: 0.6957 acc: 0.7745
-val loss: 1.8937 acc: 0.5119
+train loss: 0.4177 acc: 0.9084
+val loss: 0.4757 acc: 0.8654
 
 Epoch 3/4
 --------------------
-train loss: 0.5742 acc: 0.8092
-val loss: 1.6764 acc: 0.5737
+train loss: 0.3382 acc: 0.9209
+val loss: 0.4193 acc: 0.8757
 
 Epoch 4/4
 --------------------
-train loss: 0.3918 acc: 0.8745
-val loss: 1.8916 acc: 0.5435
+train loss: 0.2888 acc: 0.9291
+val loss: 0.3824 acc: 0.8828
 
-Best val accuracy: 0.5737
+Training done in 5m 54s
+Best val acc: 0.8828
 ```
 
 ## Contact
