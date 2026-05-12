@@ -6,6 +6,7 @@ from torchvision import datasets, models, transforms
 import torchvision
 import matplotlib.pyplot as plt
 import numpy as np
+import time
 
 # -----------------------
 # Transform
@@ -40,7 +41,7 @@ test = datasets.OxfordIIITPet(
     target_types="category"
 )
 
-# FIXED: num_workers=0 for macOS/Python 3.14
+#num_workers=0 for macOS/Python 3.14, otherwise issue for some reason
 dataloaders = {
     "train": DataLoader(train, batch_size=32, shuffle=True, num_workers=0),
     "val": DataLoader(test, batch_size=32, shuffle=False, num_workers=0)
@@ -51,7 +52,7 @@ dataset_sizes = {
     "val": len(test)
 }
 
-# 37 breed classes
+# 37 breed classes, instead of cat/dog
 class_names = train.classes
 
 # -----------------------
@@ -70,39 +71,37 @@ print(f"Using {device}")
 # -----------------------
 def imshow(inp, title=None):
     inp = inp.numpy().transpose((1, 2, 0))
-
     mean = np.array([0.485, 0.456, 0.406])
     std = np.array([0.229, 0.224, 0.225])
-
     inp = std * inp + mean
     inp = np.clip(inp, 0, 1)
 
+    plt.figure()
     plt.imshow(inp)
-
     if title is not None:
-        plt.title(title)
-
-    plt.pause(0.001)
+        plt.title(str(title))
+    plt.show()
 
 inputs, labels = next(iter(dataloaders["train"]))
-
 out = torchvision.utils.make_grid(inputs)
-
 imshow(out, title=[class_names[x] for x in labels])
 
 # -----------------------
 # Training loop
 # -----------------------
 def train_model(model, criterion, optimizer, num_epochs=5):
+    since = time.time()
+
     best_model_path = "best_multiclass_model.pt"
     best_acc = 0.0
+
+    torch.save(model.state_dict(), best_model_path)
 
     for epoch in range(num_epochs):
         print(f"\nEpoch {epoch}/{num_epochs - 1}")
         print("-" * 20)
 
         for phase in ["train", "val"]:
-
             if phase == "train":
                 model.train()
             else:
@@ -112,18 +111,14 @@ def train_model(model, criterion, optimizer, num_epochs=5):
             running_corrects = 0
 
             for inputs, labels in dataloaders[phase]:
-
                 inputs = inputs.to(device)
                 labels = labels.to(device)
 
                 optimizer.zero_grad()
 
                 with torch.set_grad_enabled(phase == "train"):
-
                     outputs = model(inputs)
-
                     loss = criterion(outputs, labels)
-
                     preds = outputs.argmax(1)
 
                     if phase == "train":
@@ -131,11 +126,9 @@ def train_model(model, criterion, optimizer, num_epochs=5):
                         optimizer.step()
 
                 running_loss += loss.item() * inputs.size(0)
-
                 running_corrects += (preds == labels).sum().item()
 
             epoch_loss = running_loss / dataset_sizes[phase]
-
             epoch_acc = running_corrects / dataset_sizes[phase]
 
             print(f"{phase} loss: {epoch_loss:.4f} acc: {epoch_acc:.4f}")
@@ -144,27 +137,34 @@ def train_model(model, criterion, optimizer, num_epochs=5):
                 best_acc = epoch_acc
                 torch.save(model.state_dict(), best_model_path)
 
-    print(f"\nBest val accuracy: {best_acc:.4f}")
+    time_elapsed = time.time() - since
+    print(f"\nTraining done in {time_elapsed // 60:.0f}m {time_elapsed % 60:.0f}s")
+    print(f"Best val acc: {best_acc:.4f}")
 
     model.load_state_dict(torch.load(best_model_path))
-
     return model
 
 # -----------------------
-# Model (37 classes)
+# Model (37 classes) (freeze all layers except final, to fine-tune last layer)
 # -----------------------
 model = models.resnet34(weights="IMAGENET1K_V1")
-
 model.fc = nn.Linear(model.fc.in_features, 37)
+
+#Freeze all pretrained layers
+for param in model.parameters():
+    param.requires_grad = False
+#Unfreeze final classification layer
+for param in model.fc.parameters():
+    param.requires_grad = True
 
 model = model.to(device)
 
 # -----------------------
 # Loss + Optimizer
 # -----------------------
+# model.fc = final fully connected classification layer (replaces original ResNet classifier)
 criterion = nn.CrossEntropyLoss()
-
-optimizer = optim.Adam(model.parameters(), lr=0.001)
+optimizer = optim.Adam(model.fc.parameters(), lr=0.001) 
 
 # -----------------------
 # Train
