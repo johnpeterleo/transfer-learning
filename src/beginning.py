@@ -75,10 +75,11 @@ def imshow(inp, title=None):
     inp = std * inp + mean
     inp = np.clip(inp, 0, 1)
 
+    plt.figure()
     plt.imshow(inp)
     if title is not None:
-        plt.title(title)
-    plt.pause(0.001)
+        plt.title(str(title))
+    plt.show()
 
 inputs, classes = next(iter(dataloaders["train"]))
 out = torchvision.utils.make_grid(inputs)
@@ -173,17 +174,24 @@ def visualize_model(model, num_images=6):
                     return
 
 # -----------------------
-# Model
+# Model (freeze all layers except final, to fine-tune last layer)
 # -----------------------
 model = models.resnet34(weights="IMAGENET1K_V1")
 model.fc = nn.Linear(model.fc.in_features, 2)
+#Freeze all pretrained layers
+for param in model.parameters():
+    param.requires_grad = False
+#Unfreeze final classification layer
+for param in model.fc.parameters():
+    param.requires_grad = True
+
 model = model.to(device)
 
 # -----------------------
 # Loss + Optimizer
 # -----------------------
 criterion = nn.CrossEntropyLoss()
-optimizer = optim.Adam(model.parameters(), lr=0.001)
+optimizer = optim.Adam(model.fc.parameters(), lr=0.001)
 
 # -----------------------
 # Train
