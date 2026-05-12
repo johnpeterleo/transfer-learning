@@ -110,6 +110,148 @@ Training done in 5m 54s
 Best val acc: 0.8828
 ```
 
+4. Run fine_tune_l_layers.py 
+        
+Multi-class transfer learning experiment for all 37 pet breeds using the built in dataset from torchvision.datasets.OxfordIIITPet provided by torch, and not extract.py (which can be used for training on imbalanced data). This part uses Adam optimizer with 0.001 learning rate. The replaced final layer (37 output instead of resnets own 1000 or so outputs) is fine-tuned with pet datasets training data. The major difference between this experiment and the previous one, i.e. multi_class.py, is that this code also trains the lower levels in iterations (not only the final fully-connected classification layer) for 4 different models in total such that we can compare the final accuracy.
+```bash
+cd src
+python fine_tune_l_layers.py 
+```
+
+Produces these results during training:
+```bash
+Training with l = 1
+Trainable parts: ['fc', 'layer4']
+Trainable parameters: 13133349
+
+Epoch 0/4
+--------------------
+train loss: 0.8745 acc: 0.7473
+val loss: 0.9980 acc: 0.7144
+
+Epoch 1/4
+--------------------
+train loss: 0.2754 acc: 0.9147
+val loss: 0.8192 acc: 0.7569
+
+Epoch 2/4
+--------------------
+train loss: 0.1416 acc: 0.9592
+val loss: 0.6766 acc: 0.8081
+
+Epoch 3/4
+--------------------
+train loss: 0.0966 acc: 0.9690
+val loss: 0.6365 acc: 0.8261
+
+Epoch 4/4
+--------------------
+train loss: 0.1111 acc: 0.9690
+val loss: 0.7804 acc: 0.7978
+
+Training done in 6m 18s
+Best val acc: 0.8261
+
+Training with l = 2
+Trainable parts: ['fc', 'layer4', 'layer3']
+Trainable parameters: 19955749
+
+Epoch 0/4
+--------------------
+train loss: 1.1833 acc: 0.6495
+val loss: 1.3146 acc: 0.6092
+
+Epoch 1/4
+--------------------
+train loss: 0.4512 acc: 0.8590
+val loss: 1.6595 acc: 0.5617
+
+Epoch 2/4
+--------------------
+train loss: 0.3061 acc: 0.9068
+val loss: 1.1015 acc: 0.6931
+
+Epoch 3/4
+--------------------
+train loss: 0.1716 acc: 0.9454
+val loss: 1.0452 acc: 0.7266
+
+Epoch 4/4
+--------------------
+train loss: 0.1477 acc: 0.9557
+val loss: 1.2527 acc: 0.6980
+
+Training done in 8m 12s
+Best val acc: 0.7266
+
+Training with l = 3
+Trainable parts: ['fc', 'layer4', 'layer3', 'layer2']
+Trainable parameters: 21072165
+
+Epoch 0/4
+--------------------
+train loss: 1.3381 acc: 0.5984
+val loss: 1.3046 acc: 0.5961
+
+Epoch 1/4
+--------------------
+train loss: 0.5856 acc: 0.8120
+val loss: 1.4743 acc: 0.5732
+
+Epoch 2/4
+--------------------
+train loss: 0.3915 acc: 0.8764
+val loss: 1.2016 acc: 0.6672
+
+Epoch 3/4
+--------------------
+train loss: 0.2948 acc: 0.9057
+val loss: 1.1346 acc: 0.6697
+
+Epoch 4/4
+--------------------
+train loss: 0.2234 acc: 0.9296
+val loss: 1.5412 acc: 0.6451
+
+Training done in 9m 12s
+Best val acc: 0.6697
+
+Training with l = 4
+Trainable parts: ['fc', 'layer4', 'layer3', 'layer2', 'layer1']
+Trainable parameters: 21294117
+
+Epoch 0/4
+--------------------
+train loss: 1.3870 acc: 0.5832
+val loss: 1.7479 acc: 0.4871
+
+Epoch 1/4
+--------------------
+train loss: 0.6651 acc: 0.7921
+val loss: 1.5463 acc: 0.5756
+
+Epoch 2/4
+--------------------
+train loss: 0.4675 acc: 0.8495
+val loss: 1.7293 acc: 0.5399
+
+Epoch 3/4
+--------------------
+train loss: 0.3366 acc: 0.8918
+val loss: 1.9219 acc: 0.5007
+
+Epoch 4/4
+--------------------
+train loss: 0.2416 acc: 0.9264
+val loss: 1.4866 acc: 0.6162
+
+Training done in 10m 1s
+Best val acc: 0.6162
+```
+
+And this graph for validation and training accuracy accross the models:
+![Fine-tuning comparison](compare_all_l.png)
+
 ## Contact
 John Christensen - johnchristensen@outlook.com
 
