@@ -8,3 +8,12 @@ __pycache__/
 # Data cache and results
 data/cache/
 data/results/
+
+# Model weights
+best_model.pt
+best_multiclass_model.pt
+
+# Scripts
+src/2classesbulletpoint1.py
+src/37classesbulletpoint2.py
+src/sanitycheck.py
