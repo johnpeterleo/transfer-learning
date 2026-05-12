@@ -250,7 +250,7 @@ Best val acc: 0.6162
 ```
 
 And this graph for validation and training accuracy accross the models:
-![Fine-tuning comparison](compare_all_l.png)
+![Fine-tuning comparison](src/compare_all_l.png)
 
 ## Contact
 John Christensen - johnchristensen@outlook.com
