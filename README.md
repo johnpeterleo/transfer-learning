@@ -44,32 +44,41 @@ Produces these results during training:
 ```bash
 Epoch 0/4
 --------------------
-train loss: 0.2561 acc: 0.9049
-val loss: 0.0999 acc: 0.9747
+train loss: 0.2973 acc: 0.8879
+val loss: 0.1014 acc: 0.9715
 
 Epoch 1/4
 --------------------
-train loss: 0.0794 acc: 0.9804
-val loss: 0.0630 acc: 0.9847
+train loss: 0.1037 acc: 0.9708
+val loss: 0.0682 acc: 0.9864
 
 Epoch 2/4
 --------------------
-train loss: 0.0701 acc: 0.9791
-val loss: 0.0500 acc: 0.9877
+train loss: 0.0668 acc: 0.9786
+val loss: 0.0462 acc: 0.9891
 
 Epoch 3/4
 --------------------
-train loss: 0.0482 acc: 0.9867
-val loss: 0.0435 acc: 0.9880
+train loss: 0.0467 acc: 0.9908
+val loss: 0.0385 acc: 0.9905
 
 Epoch 4/4
 --------------------
-train loss: 0.0519 acc: 0.9823
-val loss: 0.0392 acc: 0.9872
+train loss: 0.0446 acc: 0.9864
+val loss: 0.0352 acc: 0.9932
 
-Training done in 5m 50s
-Best val acc: 0.9880
+Training done in 2m 14s
+Best val acc: 0.9932
+Test accuracy: 0.9880
 ```
+
+Producing this test accuracy:
+```bash
+Test accuracy: 0.9880
+```
+
+And this graph for validation and training accuracy:
+![binary classification accuracy baseline](src/binary_accuracy_baseline.png)
 
 3. Run multi_class.py 
         
@@ -83,32 +92,41 @@ Produces these results during training:
 ```bash
 Epoch 0/4
 --------------------
-train loss: 1.8515 acc: 0.5870
-val loss: 0.8111 acc: 0.8362
+train loss: 2.0081 acc: 0.5560
+val loss: 0.8989 acc: 0.8492
 
 Epoch 1/4
 --------------------
-train loss: 0.6194 acc: 0.8728
-val loss: 0.5301 acc: 0.8681
+train loss: 0.7100 acc: 0.8645
+val loss: 0.5493 acc: 0.8736
 
 Epoch 2/4
 --------------------
-train loss: 0.4177 acc: 0.9084
-val loss: 0.4757 acc: 0.8654
+train loss: 0.4696 acc: 0.9039
+val loss: 0.4106 acc: 0.9076
 
 Epoch 3/4
 --------------------
-train loss: 0.3382 acc: 0.9209
-val loss: 0.4193 acc: 0.8757
+train loss: 0.3741 acc: 0.9164
+val loss: 0.3644 acc: 0.9008
 
 Epoch 4/4
 --------------------
-train loss: 0.2888 acc: 0.9291
-val loss: 0.3824 acc: 0.8828
+train loss: 0.3072 acc: 0.9317
+val loss: 0.3434 acc: 0.9035
 
-Training done in 5m 54s
-Best val acc: 0.8828
+Training done in 2m 14s
+Best val acc: 0.9076
+Test accuracy: 0.8757
 ```
+
+Producing this test accuracy:
+```bash
+Test accuracy: 0.8757
+```
+
+And this graph for validation and training accuracy:
+![Multi-class accuracy baseline](src/multi_class_accuracy_baseline.png)
 
 4. Run fine_tune_l_layers.py 
         
