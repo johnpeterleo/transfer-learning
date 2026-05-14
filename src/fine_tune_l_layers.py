@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
+from torch.utils.data import random_split
 from torchvision import datasets, models, transforms
 import torchvision
 import matplotlib.pyplot as plt
@@ -34,7 +35,7 @@ data_transform = transforms.Compose([
 # -----------------------
 data_dir = ".."
 
-train = datasets.OxfordIIITPet(
+full_train = datasets.OxfordIIITPet(
     root=data_dir,
     split="trainval",
     transform=data_transform,
@@ -50,19 +51,27 @@ test = datasets.OxfordIIITPet(
     target_types="category"
 )
 
+# Split trainval → 80% train, 20% val
+train_size = int(0.8 * len(full_train))
+val_size = len(full_train) - train_size
+train, val = random_split(full_train, [train_size, val_size])
+
+
 #num_workers=0 for macOS/Python 3.14, otherwise issue for some reason
 dataloaders = {
-    "train": DataLoader(train, batch_size=64, shuffle=True, num_workers=0),
-    "val": DataLoader(test, batch_size=64, shuffle=False, num_workers=0)
+    "train": DataLoader(train, batch_size=64, shuffle=True,  num_workers=0),
+    "val":   DataLoader(val,   batch_size=64, shuffle=False, num_workers=0),
+    "test":  DataLoader(test,  batch_size=64, shuffle=False, num_workers=0),
 }
 
 dataset_sizes = {
     "train": len(train),
-    "val": len(test)
+    "val": len(val),
+    "test": len(test)
 }
 
 # 37 breed classes, instead of cat/dog
-class_names = train.classes
+class_names = full_train.classes
 
 # -----------------------
 # Device
@@ -185,6 +194,22 @@ def describe_layers(l):
     names = ["layer4", "layer3", "layer2", "layer1"]
     return ["fc"] + names[:l]
 
+def evaluate_on_test(model):
+    model.eval()
+    running_corrects = 0
+
+    with torch.no_grad():
+        for inputs, labels in dataloaders["test"]:
+            inputs = inputs.to(device)
+            labels = labels.to(device)
+            outputs = model(inputs)
+            preds = outputs.argmax(1)
+            running_corrects += (preds == labels).sum().item()
+
+    acc = running_corrects / dataset_sizes["test"]
+    print(f"  Test accuracy: {acc:.4f}")
+    return acc
+
 all_results = {} # for plotting accuracy graph
 max_l = 4
 for l in range(1, max_l + 1):
@@ -217,6 +242,9 @@ for l in range(1, max_l + 1):
         l=l
     )
     all_results[l] = (train_acc, val_acc)
+
+    print(f"Evaluating best model for l={l} on test set...")
+    test_acc = evaluate_on_test(model) 
 
 plt.figure()
 
