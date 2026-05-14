@@ -120,37 +120,38 @@ python fine_tune_l_layers.py
 
 Produces these results during training:
 ```bash
-Training with l = 1
 Trainable parts: ['fc', 'layer4']
 Trainable parameters: 13133349
 
 Epoch 0/4
 --------------------
-train loss: 0.8745 acc: 0.7473
-val loss: 0.9980 acc: 0.7144
+train loss: 0.9358 acc: 0.7334
+val loss: 0.7538 acc: 0.7826
 
 Epoch 1/4
 --------------------
-train loss: 0.2754 acc: 0.9147
-val loss: 0.8192 acc: 0.7569
+train loss: 0.2507 acc: 0.9212
+val loss: 0.7287 acc: 0.7853
 
 Epoch 2/4
 --------------------
-train loss: 0.1416 acc: 0.9592
-val loss: 0.6766 acc: 0.8081
+train loss: 0.1412 acc: 0.9596
+val loss: 0.7286 acc: 0.8016
 
 Epoch 3/4
 --------------------
-train loss: 0.0966 acc: 0.9690
-val loss: 0.6365 acc: 0.8261
+train loss: 0.0786 acc: 0.9786
+val loss: 0.4992 acc: 0.8587
 
 Epoch 4/4
 --------------------
-train loss: 0.1111 acc: 0.9690
-val loss: 0.7804 acc: 0.7978
+train loss: 0.0665 acc: 0.9810
+val loss: 0.5942 acc: 0.8370
 
-Training done in 6m 18s
-Best val acc: 0.8261
+Training done in 2m 7s
+Best val acc: 0.8587
+Evaluating best model for l=1 on test set...
+  Test accuracy: 0.8277
 
 Training with l = 2
 Trainable parts: ['fc', 'layer4', 'layer3']
@@ -158,31 +159,33 @@ Trainable parameters: 19955749
 
 Epoch 0/4
 --------------------
-train loss: 1.1833 acc: 0.6495
-val loss: 1.3146 acc: 0.6092
+train loss: 1.2063 acc: 0.6444
+val loss: 1.8151 acc: 0.4959
 
 Epoch 1/4
 --------------------
-train loss: 0.4512 acc: 0.8590
-val loss: 1.6595 acc: 0.5617
+train loss: 0.4612 acc: 0.8590
+val loss: 1.0145 acc: 0.7052
 
 Epoch 2/4
 --------------------
-train loss: 0.3061 acc: 0.9068
-val loss: 1.1015 acc: 0.6931
+train loss: 0.3160 acc: 0.9018
+val loss: 1.0021 acc: 0.7024
 
 Epoch 3/4
 --------------------
-train loss: 0.1716 acc: 0.9454
-val loss: 1.0452 acc: 0.7266
+train loss: 0.2067 acc: 0.9412
+val loss: 1.0504 acc: 0.6997
 
 Epoch 4/4
 --------------------
-train loss: 0.1477 acc: 0.9557
-val loss: 1.2527 acc: 0.6980
+train loss: 0.1065 acc: 0.9691
+val loss: 1.0505 acc: 0.7242
 
-Training done in 8m 12s
-Best val acc: 0.7266
+Training done in 2m 19s
+Best val acc: 0.7242
+Evaluating best model for l=2 on test set...
+  Test accuracy: 0.6934
 
 Training with l = 3
 Trainable parts: ['fc', 'layer4', 'layer3', 'layer2']
@@ -190,31 +193,33 @@ Trainable parameters: 21072165
 
 Epoch 0/4
 --------------------
-train loss: 1.3381 acc: 0.5984
-val loss: 1.3046 acc: 0.5961
+train loss: 1.4335 acc: 0.5873
+val loss: 1.5097 acc: 0.5530
 
 Epoch 1/4
 --------------------
-train loss: 0.5856 acc: 0.8120
-val loss: 1.4743 acc: 0.5732
+train loss: 0.6274 acc: 0.8101
+val loss: 2.0108 acc: 0.4660
 
 Epoch 2/4
 --------------------
-train loss: 0.3915 acc: 0.8764
-val loss: 1.2016 acc: 0.6672
+train loss: 0.3776 acc: 0.8791
+val loss: 1.1370 acc: 0.6658
 
 Epoch 3/4
 --------------------
-train loss: 0.2948 acc: 0.9057
-val loss: 1.1346 acc: 0.6697
+train loss: 0.2580 acc: 0.9185
+val loss: 1.4492 acc: 0.6277
 
 Epoch 4/4
 --------------------
-train loss: 0.2234 acc: 0.9296
-val loss: 1.5412 acc: 0.6451
+train loss: 0.1412 acc: 0.9589
+val loss: 1.2788 acc: 0.6495
 
-Training done in 9m 12s
-Best val acc: 0.6697
+Training done in 2m 29s
+Best val acc: 0.6658
+Evaluating best model for l=3 on test set...
+  Test accuracy: 0.6803
 
 Training with l = 4
 Trainable parts: ['fc', 'layer4', 'layer3', 'layer2', 'layer1']
@@ -222,32 +227,43 @@ Trainable parameters: 21294117
 
 Epoch 0/4
 --------------------
-train loss: 1.3870 acc: 0.5832
-val loss: 1.7479 acc: 0.4871
+train loss: 1.4545 acc: 0.5785
+val loss: 2.6749 acc: 0.4198
 
 Epoch 1/4
 --------------------
-train loss: 0.6651 acc: 0.7921
-val loss: 1.5463 acc: 0.5756
+train loss: 0.6966 acc: 0.7806
+val loss: 1.8417 acc: 0.5095
 
 Epoch 2/4
 --------------------
-train loss: 0.4675 acc: 0.8495
-val loss: 1.7293 acc: 0.5399
+train loss: 0.4534 acc: 0.8553
+val loss: 3.3504 acc: 0.3655
 
 Epoch 3/4
 --------------------
-train loss: 0.3366 acc: 0.8918
-val loss: 1.9219 acc: 0.5007
+train loss: 0.3624 acc: 0.8828
+val loss: 1.9145 acc: 0.5598
 
 Epoch 4/4
 --------------------
-train loss: 0.2416 acc: 0.9264
-val loss: 1.4866 acc: 0.6162
+train loss: 0.2226 acc: 0.9293
+val loss: 1.2174 acc: 0.6712
 
-Training done in 10m 1s
-Best val acc: 0.6162
+Training done in 2m 42s
+Best val acc: 0.6712
+Evaluating best model for l=4 on test set...
+  Test accuracy: 0.6225
 ```
+
+Producing these test accuracies:
+```bash
+l = 1: Test accuracy: 0.8277
+l = 2: Test accuracy: 0.6934
+l = 3: Test accuracy: 0.6803
+l = 4: Test accuracy: 0.6225
+```
+
 
 And this graph for validation and training accuracy accross the models:
 ![Fine-tuning comparison](src/compare_all_l.png)
