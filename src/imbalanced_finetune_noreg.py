@@ -2,7 +2,6 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader, Subset, WeightedRandomSampler, random_split
-from torch.optim import lr_scheduler
 from torchvision import datasets, models, transforms
 import numpy as np
 import matplotlib.pyplot as plt
@@ -13,23 +12,17 @@ import time
 from tempfile import TemporaryDirectory
 
 
-# Task1 — Fine-tuning with imbalanced classes.
+# Task1 — Fine-tuning with imbalanced classes  (NO REGULARIZATION variant).
 #
-# This script reuses the coauthor pipeline (data transforms, train_model,
-# AdamW + StepLR) from limited_data.py / gradual_unfreezing.py, and layers
-# the imbalance experiment on top so the training regime is identical
-# across strategies. The four strategies compared:
-#   - baseline                    : plain CE on the imbalanced train set
-#   - weighted_ce                 : nn.CrossEntropyLoss(weight = inv-freq)
-#   - oversampling                : WeightedRandomSampler with inv-freq
-#   - weighted_ce + oversampling  : both at once
+# Companion script to imbalanced_finetune.py. Same data setup, same 4
+# strategies, same evaluation — but every regularization knob is OFF:
+#   - train uses the PLAIN transform (no augmentation)
+#   - optimizer is plain Adam (weight_decay = 0)
+#   - constant LR (no scheduler)
 #
-# Generalization stack (shared by all four strategies, so the comparison is
-# apples-to-apples instead of three flavors of overfit):
-#   - data augmentation on train (RandomResizedCrop + flip + rotation)
-#   - AdamW with weight_decay = 1e-4
-#   - StepLR scheduler  (drop LR by 10x every 7 epochs)
-#   - val carved out of trainval (80/20), test split untouched until the end
+# Goal: isolate the effect of the imbalance-mitigation strategies from the
+# effect of regularization. Compare the summary table here against the one
+# from imbalanced_finetune.py to see what each piece actually contributes.
 
 
 # -----------------------
@@ -40,19 +33,18 @@ CAT_BREEDS = {
     "Egyptian Mau", "Maine Coon", "Persian", "Ragdoll",
     "Russian Blue", "Siamese", "Sphynx",
 }
-IMBALANCE_RATIO = 0.20                  # keep 20% of each cat breed in train
-L            = 2                        # fine-tune last l ResNet blocks + fc
+IMBALANCE_RATIO = 0.20
+L            = 2
 NUM_EPOCHS   = 12
 LR           = 1e-3
-WEIGHT_DECAY = 1e-4
 BATCH_SIZE   = 64
 SPLIT_SEED   = 42
 IMBAL_SEED   = 123
 
 
 # -----------------------
-# Transforms — pulled from limited_data.py (coauthor pipeline).
-# Plain pipeline for val/test, aug pipeline for train.
+# Transform — plain only. No aug variant, train uses the same pipeline as
+# val/test. (This is the difference from imbalanced_finetune.py.)
 # -----------------------
 data_transform = transforms.Compose([
     transforms.Resize((224, 224)),
@@ -61,30 +53,15 @@ data_transform = transforms.Compose([
                          std=[0.229, 0.224, 0.225]),
 ])
 
-data_augmentation = transforms.Compose([
-    transforms.Resize((256, 256)),
-    transforms.RandomHorizontalFlip(),
-    transforms.RandomRotation(15),
-    transforms.RandomResizedCrop(224, scale=(0.8, 1.0)),
-    transforms.ToTensor(),
-    transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                         std=[0.229, 0.224, 0.225]),
-])
-
 
 # -----------------------
-# Dataset — two parallel copies of trainval (plain + aug) so the same indices
-# can address either transform. Test always uses the plain pipeline.
+# Dataset
 # -----------------------
 data_dir = ".."
 
 full_train = datasets.OxfordIIITPet(
     root=data_dir, split="trainval",
     transform=data_transform, download=True, target_types="category",
-)
-full_train_aug = datasets.OxfordIIITPet(
-    root=data_dir, split="trainval",
-    transform=data_augmentation, download=True, target_types="category",
 )
 test = datasets.OxfordIIITPet(
     root=data_dir, split="test",
@@ -94,17 +71,13 @@ test = datasets.OxfordIIITPet(
 class_names = full_train.classes
 num_classes = len(class_names)
 
-# Cat breed → label index. torchvision sorts class names alphabetically, so a
-# fixed range(12) doesn't work — cats and dogs are interleaved.
 CAT_CLASS_INDICES = [i for i, n in enumerate(class_names) if n in CAT_BREEDS]
 assert len(CAT_CLASS_INDICES) == 12
 
 
 # -----------------------
-# 80/20 trainval → train / val (same idiom as the coauthor scripts).
-# trainval is balanced (~99 imgs per class), so random_split is approximately
-# stratified; val keeps its balance which is what we want for an honest signal.
-# Apply the cat-breed imbalance only to the train half.
+# 80/20 split (same seed as the regularized run so val membership matches).
+# Imbalance is applied only to the train half.
 # -----------------------
 train_size = int(0.8 * len(full_train))
 val_size   = len(full_train) - train_size
@@ -113,7 +86,6 @@ train_clean, val_set = random_split(
     generator=torch.Generator().manual_seed(SPLIT_SEED),
 )
 
-# Reduce each cat breed to IMBALANCE_RATIO of its samples within train.
 _rng = np.random.default_rng(IMBAL_SEED)
 _by_class = collections.defaultdict(list)
 for idx in train_clean.indices:
@@ -127,8 +99,8 @@ for cls, idxs in _by_class.items():
     else:
         imbal_idxs.extend(idxs)
 
-# Training subset uses augmented dataset; val/test use plain.
-imbal_train = Subset(full_train_aug, imbal_idxs)
+# Plain transform on training too — no aug.
+imbal_train = Subset(full_train, imbal_idxs)
 train_labels = [full_train._labels[i] for i in imbal_idxs]
 
 dataset_sizes = {
@@ -152,8 +124,7 @@ print(f"Using {device}")
 
 
 # -----------------------
-# Inverse-frequency weights — used by weighted_ce and the oversampling sampler.
-# Normalised so total weight = num_classes (keeps loss scale ~ unweighted CE).
+# Inverse-frequency weights
 # -----------------------
 counts = np.bincount(train_labels, minlength=num_classes).astype(float)
 counts_safe = np.where(counts == 0, 1, counts)
@@ -168,8 +139,7 @@ sample_weights = torch.tensor(
 
 
 # -----------------------
-# Model — ResNet-34, fine-tune last l blocks + fc (same helper as
-# fine_tune_l_layers.py).
+# Model
 # -----------------------
 def set_finetune_l_layers(model, l):
     for param in model.parameters():
@@ -191,11 +161,9 @@ def build_model():
 
 
 # -----------------------
-# Training loop — coauthor style (limited_data.py): tracks both loss and acc
-# histories, steps the scheduler after the train phase, saves best-by-val-acc
-# to a TemporaryDirectory so disk doesn't fill with 4 checkpoints.
+# Training loop — no scheduler arg, plain CE-then-step pattern.
 # -----------------------
-def train_model(model, dataloaders, criterion, optimizer, scheduler, num_epochs):
+def train_model(model, dataloaders, criterion, optimizer, num_epochs):
     since = time.time()
     train_loss_h, val_loss_h = [], []
     train_acc_h,  val_acc_h  = [], []
@@ -229,9 +197,6 @@ def train_model(model, dataloaders, criterion, optimizer, scheduler, num_epochs)
                     running_loss += loss.item() * inputs.size(0)
                     running_corrects += (preds == labels).sum().item()
 
-                if phase == "train":
-                    scheduler.step()
-
                 epoch_loss = running_loss / dataset_sizes[phase]
                 epoch_acc  = running_corrects / dataset_sizes[phase]
 
@@ -257,7 +222,7 @@ def train_model(model, dataloaders, criterion, optimizer, scheduler, num_epochs)
 
 
 # -----------------------
-# Per-class evaluation — task asks for measures beyond overall accuracy.
+# Per-class evaluation
 # -----------------------
 def evaluate(model, loader):
     model.eval()
@@ -292,7 +257,7 @@ strategies = ["baseline", "weighted_ce", "oversampling", "weighted_ce+oversampli
 all_results = {}
 
 for strat in strategies:
-    print(f"\n{'='*45}\nStrategy: {strat}\n{'='*45}")
+    print(f"\n{'='*45}\nStrategy: {strat}  (NO REG)\n{'='*45}")
 
     use_weights = "weighted_ce"  in strat
     use_sampler = "oversampling" in strat
@@ -316,11 +281,11 @@ for strat in strategies:
 
     model = build_model()
     trainable = [p for p in model.parameters() if p.requires_grad]
-    optimizer = optim.AdamW(trainable, lr=LR, weight_decay=WEIGHT_DECAY)
-    scheduler = lr_scheduler.StepLR(optimizer, step_size=7, gamma=0.1)
+    # Plain Adam, no weight decay, no scheduler — the "no reg" knob.
+    optimizer = optim.Adam(trainable, lr=LR)
 
     model, tr_loss, va_loss, tr_acc, va_acc = train_model(
-        model, dataloaders, criterion, optimizer, scheduler, NUM_EPOCHS,
+        model, dataloaders, criterion, optimizer, NUM_EPOCHS,
     )
 
     val_res  = evaluate(model, val_loader)
@@ -344,43 +309,43 @@ for strat in strategies:
 
 
 # -----------------------
-# Plot 1: train/val accuracy curves
+# Plot 1: train/val accuracy
 # -----------------------
 plt.figure(figsize=(10, 6))
 for strat, r in all_results.items():
     ep = range(1, len(r["val_acc"]) + 1)
     plt.plot(ep, r["train_acc"], "--", alpha=0.7, label=f"train {strat}")
     plt.plot(ep, r["val_acc"], label=f"val {strat}")
-plt.title("Imbalance mitigation — train/val accuracy")
+plt.title("Imbalance mitigation (NO REG) — train/val accuracy")
 plt.xlabel("epoch")
 plt.ylabel("accuracy")
 plt.grid(True, alpha=0.3)
 plt.legend(fontsize=8, bbox_to_anchor=(1.02, 1), loc="upper left")
 plt.tight_layout()
-plt.savefig("compare_imbalance_strategies.png")
+plt.savefig("compare_imbalance_strategies_noreg.png")
 plt.close()
 
 
 # -----------------------
-# Plot 2: train/val loss curves
+# Plot 2: train/val loss
 # -----------------------
 plt.figure(figsize=(10, 6))
 for strat, r in all_results.items():
     ep = range(1, len(r["val_loss"]) + 1)
     plt.plot(ep, r["train_loss"], "--", alpha=0.7, label=f"train {strat}")
     plt.plot(ep, r["val_loss"], label=f"val {strat}")
-plt.title("Imbalance mitigation — train/val loss")
+plt.title("Imbalance mitigation (NO REG) — train/val loss")
 plt.xlabel("epoch")
 plt.ylabel("loss")
 plt.grid(True, alpha=0.3)
 plt.legend(fontsize=8, bbox_to_anchor=(1.02, 1), loc="upper left")
 plt.tight_layout()
-plt.savefig("compare_imbalance_loss.png")
+plt.savefig("compare_imbalance_loss_noreg.png")
 plt.close()
 
 
 # -----------------------
-# Plot 3: per-class F1 on test (cat columns marked)
+# Plot 3: per-class F1
 # -----------------------
 x = np.arange(num_classes)
 width = 0.20
@@ -393,10 +358,10 @@ ax.set_xticks(x + 1.5 * width)
 ax.set_xticklabels(class_names, rotation=45, ha="right", fontsize=8)
 ax.set_ylabel("F1")
 ax.set_ylim(0, 1)
-ax.set_title("Per-class F1 by strategy  (navy lines = cat breeds, reduced to 20%)")
+ax.set_title("Per-class F1 (NO REG)  (navy lines = cat breeds, reduced to 20%)")
 ax.legend(fontsize=8)
 plt.tight_layout()
-plt.savefig("per_class_f1.png")
+plt.savefig("per_class_f1_noreg.png")
 plt.close()
 
 
@@ -404,7 +369,7 @@ plt.close()
 # Summary
 # -----------------------
 print("\n" + "=" * 60)
-print("SUMMARY")
+print("SUMMARY  (NO REGULARIZATION)")
 print("=" * 60)
 print(f"{'strategy':<28}  {'test_acc':>9}  {'test_F1':>9}  {'val_acc':>9}  {'val_F1':>9}")
 for strat in strategies:
