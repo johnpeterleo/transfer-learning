@@ -204,40 +204,60 @@ def evaluate_on_test(model):
 # -----------------------
 # Model (freeze all layers except final, to fine-tune last layer)
 # -----------------------
-model = models.resnet34(weights="IMAGENET1K_V1")
-model.fc = nn.Linear(model.fc.in_features, 2)
+num_runs = 5
+all_train_acc = []
+all_val_acc = []
+all_test_acc = []
+for run in range(num_runs):
+  print(f"\n======== RUN {run+1}/{num_runs} ========")
 
-#Freeze all pretrained layers
-for param in model.parameters():
-    param.requires_grad = False
-#Unfreeze final classification layer
-for param in model.fc.parameters():
-    param.requires_grad = True
+  model = models.resnet34(weights="IMAGENET1K_V1")
+  model.fc = nn.Linear(model.fc.in_features, 2)
 
-model = model.to(device)
+  #Freeze all pretrained layers
+  for param in model.parameters():
+      param.requires_grad = False
+  #Unfreeze final classification layer
+  for param in model.fc.parameters():
+      param.requires_grad = True
 
-# -----------------------
-# Loss + Optimizer
-# -----------------------
-# model.fc = final fully connected classification layer (replaces original ResNet classifier)
-criterion = nn.CrossEntropyLoss()
-optimizer = optim.Adam(model.fc.parameters(), lr=0.001)
+  model = model.to(device)
 
-model, train_acc, val_acc = train_model(model, criterion, optimizer, scheduler=None, num_epochs=5)
+  # -----------------------
+  # Loss + Optimizer
+  # -----------------------
+  # model.fc = final fully connected classification layer (replaces original ResNet classifier)
+  criterion = nn.CrossEntropyLoss()
+  optimizer = optim.Adam(model.fc.parameters(), lr=0.001)
 
-test_acc = evaluate_on_test(model)
+  model, train_acc, val_acc = train_model(model, criterion, optimizer, scheduler=None, num_epochs=5)
 
-epochs = range(1, len(train_acc) + 1)
+  test_acc = evaluate_on_test(model)
+  all_train_acc.append(train_acc)
+  all_val_acc.append(val_acc)
+  all_test_acc.append(test_acc)
+
+#average
+avg_train_acc = np.mean(all_train_acc, axis=0)
+avg_val_acc = np.mean(all_val_acc, axis=0)
+avg_test_acc = np.mean(all_test_acc)
+
+epochs = range(1, len(avg_train_acc) + 1)
+
 plt.figure()
-plt.plot(epochs, train_acc, label="train", linestyle="--")
-plt.plot(epochs, val_acc,   label="val")
-plt.axhline(y=test_acc, color="red", linestyle=":", label=f"test ({test_acc:.4f})")
-plt.title("Accuracy over epochs")
+plt.plot(epochs, avg_train_acc, label="train", linestyle="--")
+plt.plot(epochs, avg_val_acc, label="val")
+plt.axhline(
+    y=avg_test_acc,
+    color="red",
+    linestyle=":",
+    label=f"test ({avg_test_acc:.4f})"
+)
+
+plt.title("Average Accuracy over 5 Runs")
 plt.xlabel("Epoch")
 plt.ylabel("Accuracy")
 plt.legend()
 plt.savefig("accuracy.png")
 plt.show()
 plt.close()
-
-visualize_model(model)

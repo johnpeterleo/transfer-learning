@@ -212,8 +212,12 @@ def evaluate_on_test(model):
 
 all_results = {} # for plotting accuracy graph
 max_l = 4
+num_runs = 5
 for l in range(1, max_l + 1):
     print(f"\nTraining with l = {l}")
+    run_train = []
+    run_val = []
+    run_test = []
 
     model = models.resnet34(weights="IMAGENET1K_V1")
     model.fc = nn.Linear(model.fc.in_features, 37)
@@ -231,7 +235,7 @@ for l in range(1, max_l + 1):
 
     #optimizer uses all trainable parameters (those not frozen)
     trainable_params = [p for p in model.parameters() if p.requires_grad]
-    optimizer = optim.Adam(trainable_params, lr=0.001) 
+    optimizer = optim.Adam(trainable_params, lr=0.001)
 
     #Train
     model, train_acc, val_acc = train_model(
@@ -241,21 +245,39 @@ for l in range(1, max_l + 1):
         num_epochs=5,
         l=l
     )
-    all_results[l] = (train_acc, val_acc)
+    #all_results[l] = (train_acc, val_acc)
 
     print(f"Evaluating best model for l={l} on test set...")
-    test_acc = evaluate_on_test(model) 
+    test_acc = evaluate_on_test(model)
+
+    run_train.append(train_acc)
+    run_val.append(val_acc)
+    run_test.append(test_acc)
+
+# average over runs
+avg_train = np.mean(run_train, axis=0)
+avg_val = np.mean(run_val, axis=0)
+avg_test = np.mean(run_test)
+all_results[l] = (avg_train, avg_val, avg_test)
 
 plt.figure()
 
-for l, (train_acc, val_acc) in all_results.items():
+for l, (train_acc, val_acc, test_acc) in all_results.items():
     epochs = range(1, len(val_acc) + 1)
+
     plt.plot(epochs, train_acc, label=f"train l={l}", linestyle="--")
     plt.plot(epochs, val_acc, label=f"val l={l}")
 
-plt.title("Validation accuracy vs fine-tuning depth")
+    plt.axhline(
+        y=test_acc,
+        linestyle=":",
+        alpha=0.5,
+        label=f"test l={l}"
+    )
+
+plt.title("Average Accuracy over 5 runs (fine-tuning depth)")
 plt.xlabel("epoch")
 plt.ylabel("accuracy")
 plt.legend()
-plt.savefig("compare_all_l.png")
+plt.savefig("compare_all_l_avg.png")
 plt.close()
