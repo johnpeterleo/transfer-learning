@@ -1,7 +1,7 @@
 """
 Compare LoRA fine-tuning to full fine-tuning on the Oxford-IIIT Pet dataset.
 
-PART 1 — LoRA module + model builder (this file)
+PART 1 — LoRA module + model builder
     - LoRAConv2d: a frozen base Conv2d plus two trainable low-rank convs
       A (in_c -> r, same kernel/stride/padding as base) and B (r -> out_c, 1x1).
       Forward: y = base(x) + (alpha / r) * B(A(dropout(x))).
@@ -12,11 +12,6 @@ PART 1 — LoRA module + model builder (this file)
     - build_lora_resnet34: pre-trained ResNet34 with backbone frozen, new
       37-way fc head, and LoRA adapters on (conv1, conv2) by default.
 
-PART 2 — Training of LoRA vs full FT        (see src/lora_train.py)
-PART 3 — Test-set evaluation + plots        (see src/lora_evaluate.py)
-PART 4 — Ablations across r, alpha, targets (see src/lora_experiments.py)
-
-Reference: https://medium.com/data-science/implementing-lora-from-scratch-20f838b046f1
 """
 
 import math
