@@ -215,57 +215,58 @@ max_l = 4
 num_runs = 5
 for l in range(1, max_l + 1):
     print(f"\nTraining with l = {l}")
-    run_train = []
-    run_val = []
-    run_test = []
+    all_train_runs = []
+    all_val_runs = []
+    test_accs = []
 
-    model = models.resnet34(weights="IMAGENET1K_V1")
-    model.fc = nn.Linear(model.fc.in_features, 37)
-    model = model.to(device)
+    for run in range(num_runs):
+      print(f"Run {run+1}/{num_runs}")
 
-    #unfreeze l layers
-    set_finetune_l_layers(model, l)
+      model = models.resnet34(weights="IMAGENET1K_V1")
+      model.fc = nn.Linear(model.fc.in_features, 37)
+      model = model.to(device)
 
-    print("Trainable parts:", describe_layers(l))
-    print("Trainable parameters:",
-        sum(p.numel() for p in model.parameters() if p.requires_grad))
+      #unfreeze l layers
+      set_finetune_l_layers(model, l)
 
-    #Loss + optimizer
-    criterion = nn.CrossEntropyLoss()
+      print("Trainable parts:", describe_layers(l))
+      print("Trainable parameters:",
+          sum(p.numel() for p in model.parameters() if p.requires_grad))
 
-    #optimizer uses all trainable parameters (those not frozen)
-    trainable_params = [p for p in model.parameters() if p.requires_grad]
-    optimizer = optim.Adam(trainable_params, lr=0.001)
+      #Loss + optimizer
+      criterion = nn.CrossEntropyLoss()
 
-    #Train
-    model, train_acc, val_acc = train_model(
-        model,
-        criterion,
-        optimizer,
-        num_epochs=5,
-        l=l
-    )
-    #all_results[l] = (train_acc, val_acc)
+      #optimizer uses all trainable parameters (those not frozen)
+      trainable_params = [p for p in model.parameters() if p.requires_grad]
+      optimizer = optim.Adam(trainable_params, lr=0.001)
 
-    print(f"Evaluating best model for l={l} on test set...")
-    test_acc = evaluate_on_test(model)
+      #Train
+      model, train_acc, val_acc = train_model(
+          model,
+          criterion,
+          optimizer,
+          num_epochs=5,
+          l=l
+      )
+      print(f"Evaluating best model for l={l} on test set...")
+      test_acc = evaluate_on_test(model)
+      #all_results[l] = (train_acc, val_acc)
+      all_train_runs.append(train_acc)
+      all_val_runs.append(val_acc)
+      test_accs.append(test_acc)
 
-    run_train.append(train_acc)
-    run_val.append(val_acc)
-    run_test.append(test_acc)
-
-# average over runs
-avg_train = np.mean(run_train, axis=0)
-avg_val = np.mean(run_val, axis=0)
-avg_test = np.mean(run_test)
-all_results[l] = (avg_train, avg_val, avg_test)
+    # average over runs
+    avg_train = np.mean(np.stack(all_train_runs), axis=0)
+    avg_val = np.mean(np.stack(all_val_runs), axis=0)
+    avg_test = np.mean(test_accs)
+    all_results[l] = (avg_train, avg_val, avg_test)
+    print(f"Avg test accuracy over {num_runs} runs: {avg_test:.4f}")
 
 plt.figure()
-
 for l, (train_acc, val_acc, test_acc) in all_results.items():
-    epochs = range(1, len(val_acc) + 1)
+    epochs = range(1, len(train_acc) + 1)
 
-    plt.plot(epochs, train_acc, label=f"train l={l}", linestyle="--")
+    plt.plot(epochs, train_acc, linestyle="--", label=f"train l={l}")
     plt.plot(epochs, val_acc, label=f"val l={l}")
 
     plt.axhline(
@@ -275,7 +276,7 @@ for l, (train_acc, val_acc, test_acc) in all_results.items():
         label=f"test l={l}"
     )
 
-plt.title("Average Accuracy over 5 runs (fine-tuning depth)")
+plt.title("Fine-tuning depth comparison (avg over 5 runs)")
 plt.xlabel("epoch")
 plt.ylabel("accuracy")
 plt.legend()
