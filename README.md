@@ -40,36 +40,17 @@ cd src
 python beginning.py
 ```
       
-Produces these results during training:
+
+Producing these accuracies for one run:
 ```bash
-Epoch 0/4
---------------------
-train loss: 0.2561 acc: 0.9049
-val loss: 0.0999 acc: 0.9747
-
-Epoch 1/4
---------------------
-train loss: 0.0794 acc: 0.9804
-val loss: 0.0630 acc: 0.9847
-
-Epoch 2/4
---------------------
-train loss: 0.0701 acc: 0.9791
-val loss: 0.0500 acc: 0.9877
-
-Epoch 3/4
---------------------
-train loss: 0.0482 acc: 0.9867
-val loss: 0.0435 acc: 0.9880
-
-Epoch 4/4
---------------------
-train loss: 0.0519 acc: 0.9823
-val loss: 0.0392 acc: 0.9872
-
-Training done in 5m 50s
-Best val acc: 0.9880
+train loss: 0.0545 acc: 0.9830
+Training done in 2m 7s
+Best val acc: 0.9959
+Test accuracy: 0.9875
 ```
+
+And this graph for validation and training accuracy:
+![binary classification accuracy baseline](src/binary_accuracy_baseline.png)
 
 3. Run multi_class.py 
         
@@ -79,36 +60,37 @@ cd src
 python multi_class.py
 ```
         
-Produces these results during training:
+Producing these accuracies during training for one run:
 ```bash
-Epoch 0/4
---------------------
-train loss: 1.8515 acc: 0.5870
-val loss: 0.8111 acc: 0.8362
+train loss: 0.2965 acc: 0.9317
 
-Epoch 1/4
---------------------
-train loss: 0.6194 acc: 0.8728
-val loss: 0.5301 acc: 0.8681
-
-Epoch 2/4
---------------------
-train loss: 0.4177 acc: 0.9084
-val loss: 0.4757 acc: 0.8654
-
-Epoch 3/4
---------------------
-train loss: 0.3382 acc: 0.9209
-val loss: 0.4193 acc: 0.8757
-
-Epoch 4/4
---------------------
-train loss: 0.2888 acc: 0.9291
-val loss: 0.3824 acc: 0.8828
-
-Training done in 5m 54s
-Best val acc: 0.8828
+Training done in 2m 8s
+Best val acc: 0.8913
+Test accuracy: 0.8689
 ```
+
+And this graph for validation and training accuracy:
+![Multi-class accuracy baseline](src/multi_class_accuracy_baseline.png)
+
+4. Run fine_tune_l_layers.py 
+        
+Multi-class transfer learning experiment for all 37 pet breeds using the built in dataset from torchvision.datasets.OxfordIIITPet provided by torch, and not extract.py (which can be used for training on imbalanced data). This part uses Adam optimizer with 0.001 learning rate. The replaced final layer (37 output instead of resnets own 1000 or so outputs) is fine-tuned with pet datasets training data. The major difference between this experiment and the previous one, i.e. multi_class.py, is that this code also trains the lower levels in iterations (not only the final fully-connected classification layer) for 4 different models in total such that we can compare the final accuracy.
+```bash
+cd src
+python fine_tune_l_layers.py 
+```
+
+Producing these accuracies during training for one run:
+```bash
+l = 1: Test accuracy: 0.8277
+l = 2: Test accuracy: 0.6934
+l = 3: Test accuracy: 0.6803
+l = 4: Test accuracy: 0.6225
+```
+
+
+And this graph for validation and training accuracy accross the models:
+![Fine-tuning comparison](src/compare_all_l.png)
 
 ## Contact
 John Christensen - johnchristensen@outlook.com

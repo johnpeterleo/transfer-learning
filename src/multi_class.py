@@ -7,6 +7,7 @@ import torchvision
 import matplotlib.pyplot as plt
 import numpy as np
 import time
+from torch.utils.data import random_split
 
 # -----------------------
 # Transform
@@ -25,7 +26,7 @@ data_transform = transforms.Compose([
 # -----------------------
 data_dir = ".."
 
-train = datasets.OxfordIIITPet(
+full_train = datasets.OxfordIIITPet(
     root=data_dir,
     split="trainval",
     transform=data_transform,
@@ -41,19 +42,25 @@ test = datasets.OxfordIIITPet(
     target_types="category"
 )
 
+train_size = int(0.8 * len(full_train))
+val_size = len(full_train) - train_size
+train, val = random_split(full_train, [train_size, val_size])
+
 #num_workers=0 for macOS/Python 3.14, otherwise issue for some reason
 dataloaders = {
-    "train": DataLoader(train, batch_size=32, shuffle=True, num_workers=0),
-    "val": DataLoader(test, batch_size=32, shuffle=False, num_workers=0)
+    "train": DataLoader(train, batch_size=32, shuffle=True,  num_workers=0),
+    "val":   DataLoader(val,   batch_size=32, shuffle=False, num_workers=0),
+    "test":  DataLoader(test,  batch_size=32, shuffle=False, num_workers=0),
 }
 
 dataset_sizes = {
     "train": len(train),
-    "val": len(test)
+    "val":   len(val),
+    "test":  len(test)
 }
 
 # 37 breed classes, instead of cat/dog
-class_names = train.classes
+class_names = full_train.classes
 
 # -----------------------
 # Device
@@ -97,6 +104,8 @@ def train_model(model, criterion, optimizer, num_epochs=5):
 
     torch.save(model.state_dict(), best_model_path)
 
+    train_acc_list = []
+    val_acc_list = []
     for epoch in range(num_epochs):
         print(f"\nEpoch {epoch}/{num_epochs - 1}")
         print("-" * 20)
@@ -132,6 +141,10 @@ def train_model(model, criterion, optimizer, num_epochs=5):
             epoch_acc = running_corrects / dataset_sizes[phase]
 
             print(f"{phase} loss: {epoch_loss:.4f} acc: {epoch_acc:.4f}")
+            if phase == "train":
+                train_acc_list.append(epoch_acc)
+            else:
+                val_acc_list.append(epoch_acc)
 
             if phase == "val" and epoch_acc > best_acc:
                 best_acc = epoch_acc
@@ -142,36 +155,88 @@ def train_model(model, criterion, optimizer, num_epochs=5):
     print(f"Best val acc: {best_acc:.4f}")
 
     model.load_state_dict(torch.load(best_model_path))
-    return model
+    return model, train_acc_list, val_acc_list
+
+def evaluate_on_test(model):
+    model.eval()
+    running_corrects = 0
+
+    with torch.no_grad():
+        for inputs, labels in dataloaders["test"]:
+            inputs = inputs.to(device)
+            labels = labels.to(device)
+            outputs = model(inputs)
+            preds = outputs.argmax(1)
+            running_corrects += (preds == labels).sum().item()
+
+    acc = running_corrects / dataset_sizes["test"]
+    print(f"Test accuracy: {acc:.4f}")
+    return acc
 
 # -----------------------
 # Model (37 classes) (freeze all layers except final, to fine-tune last layer)
 # -----------------------
-model = models.resnet34(weights="IMAGENET1K_V1")
-model.fc = nn.Linear(model.fc.in_features, 37)
+num_runs = 5
+all_train_acc = []
+all_val_acc = []
+all_test_acc = []
 
-#Freeze all pretrained layers
-for param in model.parameters():
-    param.requires_grad = False
-#Unfreeze final classification layer
-for param in model.fc.parameters():
-    param.requires_grad = True
+for run in range(num_runs):
+  print(f"\n======== RUN {run+1}/{num_runs} ========")
+    
+  model = models.resnet34(weights="IMAGENET1K_V1")
+  model.fc = nn.Linear(model.fc.in_features, 37)
 
-model = model.to(device)
+  #Freeze all pretrained layers
+  for param in model.parameters():
+      param.requires_grad = False
+  #Unfreeze final classification layer
+  for param in model.fc.parameters():
+      param.requires_grad = True
 
-# -----------------------
-# Loss + Optimizer
-# -----------------------
-# model.fc = final fully connected classification layer (replaces original ResNet classifier)
-criterion = nn.CrossEntropyLoss()
-optimizer = optim.Adam(model.fc.parameters(), lr=0.001) 
+  model = model.to(device)
 
-# -----------------------
-# Train
-# -----------------------
-model = train_model(
-    model,
-    criterion,
-    optimizer,
-    num_epochs=5
+  # -----------------------
+  # Loss + Optimizer
+  # -----------------------
+  # model.fc = final fully connected classification layer (replaces original ResNet classifier)
+  criterion = nn.CrossEntropyLoss()
+  optimizer = optim.Adam(model.fc.parameters(), lr=0.001)
+
+  # -----------------------
+  # Train
+  # -----------------------
+  model, train_acc, val_acc = train_model(model, criterion, optimizer, num_epochs=5)
+
+  test_acc = evaluate_on_test(model)
+
+  all_train_acc.append(train_acc)
+  all_val_acc.append(val_acc)
+  all_test_acc.append(test_acc)
+
+#average
+avg_train_acc = np.mean(all_train_acc, axis=0)
+avg_val_acc = np.mean(all_val_acc, axis=0)
+avg_test_acc = np.mean(all_test_acc)
+
+epochs = range(1, len(avg_train_acc) + 1)
+
+plt.figure()
+plt.plot(epochs, avg_train_acc, label="train", linestyle="--")
+plt.plot(epochs, avg_val_acc, label="val")
+
+plt.axhline(
+    y=avg_test_acc,
+    color="red",
+    linestyle=":",
+    label=f"test ({avg_test_acc:.4f})"
 )
+
+plt.title("Average Accuracy over 5 Runs")
+plt.xlabel("Epoch")
+plt.ylabel("Accuracy")
+plt.legend()
+
+plt.savefig("accuracy.png")
+plt.show()
+plt.close()
