@@ -93,7 +93,7 @@ def _get_parent_and_attr(root: nn.Module, dotted_name: str):
 
 
 def inject_lora_conv(model: nn.Module,
-                     target_names=("conv1", "conv2"),
+                     target_names=("conv1", "conv2", "conv3"),
                      r: int = 8,
                      alpha: int = 16,
                      dropout: float = 0.0) -> int:
@@ -133,18 +133,18 @@ def count_total(model: nn.Module) -> int:
 # -----------------------
 # Model builder
 # -----------------------
-def build_lora_resnet34(num_classes: int = 37,
+def build_lora_resnet50(num_classes: int = 37,
                         r: int = 8,
                         alpha: int = 16,
                         dropout: float = 0.0,
-                        target_names=("conv1", "conv2")) -> nn.Module:
+                        target_names=("conv1", "conv2", "conv3")) -> nn.Module:
     """
-    Pre-trained ResNet34 with a fresh `fc` head and LoRA adapters injected
+    Pre-trained ResNet50 with a fresh `fc` head and LoRA adapters injected
     at the named Conv2ds. Order matters: freeze first, then swap in the new
     head (its params come out as requires_grad=True by default), then inject
     LoRA (the wrapped base stays frozen, A and B start trainable).
     """
-    model = models.resnet34(weights="IMAGENET1K_V1")
+    model = models.resnet50(weights="IMAGENET1K_V1")
 
     freeze_all(model)
 
@@ -162,12 +162,31 @@ def build_lora_resnet34(num_classes: int = 37,
 
     return model
 
+def build_linear_probe(num_classes: int = 37) -> nn.Module:
+    """
+    Pre-trained ResNet50 with a fresh `fc` head, but no LoRA adapters.
+    This is a "linear probe" baseline where only the final layer is trained.
+    """
+    model = models.resnet50(weights="IMAGENET1K_V1")
+    freeze_all(model)
+    model.fc = nn.Linear(model.fc.in_features, num_classes)
 
+    return model
+
+def build_full_finetune(num_classes: int = 37) -> nn.Module:
+    """
+    Pre-trained ResNet50 with a fresh `fc` head, and all backbone layers
+    unfrozen. This is the standard full fine-tuning baseline.
+    """
+    model = models.resnet50(weights="IMAGENET1K_V1")
+    model.fc = nn.Linear(model.fc.in_features, num_classes)
+
+    return model
 # -----------------------
 # Self-test (Part 1 sanity check)
 # -----------------------
 if __name__ == "__main__":
-    model = build_lora_resnet34(num_classes=37, r=8, alpha=16)
+    model = build_lora_resnet50(num_classes=37, r=8, alpha=16)
 
     trainable = count_trainable(model)
     total = count_total(model)
